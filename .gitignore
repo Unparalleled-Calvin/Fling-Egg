@@ -1,0 +1,5 @@
+*.sln
+/.vs/
+db.sqlite3
+*.pyc
+*.pyproj
