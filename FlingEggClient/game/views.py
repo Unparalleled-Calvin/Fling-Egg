@@ -2,9 +2,10 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import time
+import json
 import random
 import sys
-sys.path.append('.\\game')
+sys.path.append(".\\game")
 from constants import *
 from gadgat import *
 # Create your views here.
@@ -13,7 +14,7 @@ from gadgat import *
 
 
 Rooms = [] #data中"key":cards
-# {"roomID":0, "state":WATTING, "focus":, "time":, "data":{}}
+# {"roomID":0, "state":WAITTING, "focus":, "time":, "data":{}}
 def initGame(ID):
     suit = ["Heart", "Spade", "Diamond", "Club"]
     face = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
@@ -32,46 +33,72 @@ def initGame(ID):
         Rooms[ID]["data"][each] = cards[i:i+27]
         i += 27
     Rooms[ID]["players"] = [i for i in Rooms[ID]["data"].keys()]
-    Rooms[ID]["focus"] = random.randint(0,3)
+    players = Rooms[ID]["players"]
+    focus = random.randint(0,3)
+    Rooms[ID]["focus"] = focus
     Rooms[ID]["time"] = time.perf_counter()
-    Rooms[ID]["discard"] = ['', '', '', '']
+    Rooms[ID]["discard"] = [[[], players[focus]], [[], players[(focus+1)%4]], [[], players[(focus+2)%4]], [[], players[(focus+3)%4]]]
+
+def newRoom():
+    return {
+            "roomID":len(Rooms), 
+            "state":WAITTING, 
+            "data":{},
+            "time":0,
+           }
 
 def checkRooms():
     for each in Rooms:
-        if each["state"] == WATTING:
+        if each["state"] == WAITTING:
             return each["roomID"]
-    Rooms.append({"roomID":len(Rooms), "state":WATTING, "data":{}})
+    Rooms.append(newRoom())
     return len(Rooms) - 1
 
 @csrf_exempt
 def game(request): #第一次是get请求，之后是post请求
+    def roomRoundChange(room, data):
+        room["discard"] = room["discard"][1:4] + [data]
+        room["time"] = time.perf_counter()
+        room["focus"] = (room["focus"] + 1) % 4
+    def roomInfo(room):
+        ret = {}
+        ret["state"] = room["state"]
+        ret["players"] = [i for i in room["data"].keys()]
+        ret["time"] = int(time.perf_counter() - room["time"])
+        if room["state"] == READY:
+            ret["focus"] = room["players"][room["focus"]]
+            ret["discard"] = room["discard"]
+        ret["winner"] = "None"
+        for key in room["data"]:
+            if len(room["data"][key]) == 0:
+                ret["winner"] = key
+                break
+        return ret
     if request.method == "GET": # get请求只管加入房间
         key = generateRandomStr(10)
         roomID = checkRooms()
         Rooms[roomID]["data"][key] = ""
-        return JsonResponse({"roomID":roomID, "key":key}) # 将房间号和请求一起返回
+        return JsonResponse({"roomID":roomID, "key":key, "state":Rooms[roomID]["state"]}) # 将房间号和请求一起返回
     if request.method == "POST": # post请求在有了房间号之后发出，用于同步本机和服务器之间的信息
-        roomID = int(request.POST["roomID"])
-        key = request.POST["key"]
+        body = json.loads(request.body)
+        roomID = int(body["roomID"])
+        key = body["key"]
         room = Rooms[roomID]
         ret = {}
-        if request.POST["func"] == "update": # 用户仅仅是想获得信息
-            if room["state"] == WATTING:
+        if body["func"] == "update": # 用户仅仅是想获得信息
+            if room["state"] == WAITTING:
                 if len(Rooms[roomID]["data"]) == 4:
                     room["state"] = READY
                     initGame(roomID)
-                else:
-                    ret["state"] = "wait"
             if room["state"] == READY:
-                ret["state"] = "ready"
-                ret["cards"] = room["data"][key]
-                ret["players"] = room["players"]
-                now = time.perf_counter()
-                if now - room["time"] > ROUNDTIME:
-                    room["time"] = time.perf_counter()
-                    room["focus"] = (room['focus'] + 1) % 4
-                ret["time"] = int(now - room["time"])
-                ret["focus"] = room["players"][room["focus"]]
-                ret["discard"] = room["discard"]
+                if time.perf_counter() - room["time"] > ROUNDTIME:
+                    roomRoundChange(room, [[],key])
+            ret = roomInfo(room)
+            ret["cards"] = room["data"][key]
+        elif body["func"] == "discard":
+            room["data"][key] = body["cards"]
+            roomRoundChange(room,[body["discard"], key])
+            ret = roomInfo(room)
+            ret["cards"] = room["data"][key]
         return JsonResponse(ret)
                     
