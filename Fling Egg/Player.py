@@ -43,12 +43,13 @@ def compareCard(card1, card2):
 
 class Card():
     # face由字符串
-    def __init__(self, face, suit):
+    def __init__(self, face, suit, ID):
         self.face = face # 2-K统一以".x"表示，A-RedJoker正常字符串
         self.value = faceToValue[face]
         self.suit = suit # Heart, Spade, Diamond, Club, Joker
+        self.ID = ID
     def __repr__(self):
-        return "Card({}, {})".format(self.face, self.suit)
+        return "Card({}, {}, {})".format(self.face, self.suit, self.ID)
 
 class Deck():
     # deck是牌堆，一种牌型
@@ -159,17 +160,31 @@ def cardsToData(cards): # 传出一个列表
 def dataToCards(data): # 传入一个列表，传出一个card列表
     cards = []
     for each in data:
-        cards.append(Card(each[0], each[1]))
+        cards.append(Card(each[0], each[1], each[2]))
     return cards
+
+class Select(list):
+    def __contains__(self, card):
+        for each in self:
+            if each.face == card.face and each.suit == card.suit and each.ID == card.ID:
+                return True
+        return False
+    
+    def Remove(self, card):
+        for each in self:
+            if each.face == card.face and each.suit == card.suit and each.ID == card.ID:
+                self.remove(each)
+                break
 
 class Player():
     def __init__(self):
         self.cards = []
-        self.select = []
+        self.select = Select()
         self.roomID = None
         self.key = ""
         self.state = IDLE
         self.start = 0
+        self.time = 0
         self.winner = "None"
 
     def get(self):
@@ -190,6 +205,7 @@ class Player():
         self.cards = sorted(dataToCards(roomData["cards"]), key=cmp_to_key(compareCard))
         self.state = roomData["state"]
         self.winner = roomData["winner"]
+        self.time = roomData["time"]
         if self.state == READY:
             self.focus = roomData["focus"] == self.key
             self.history = roomData["discard"]

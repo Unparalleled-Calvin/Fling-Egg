@@ -21,12 +21,12 @@ def initGame(ID):
     cards = []
     for each1 in face:
         for each2 in suit:
-            cards.append([each1, each2])
-            cards.append([each1, each2])
-    cards.append(["RedJoker", "Joker"])
-    cards.append(["BlackJoker", "Joker"])
-    cards.append(["RedJoker", "Joker"])
-    cards.append(["BlackJoker", "Joker"])
+            cards.append([each1, each2, 0])
+            cards.append([each1, each2, 1])
+    cards.append(["RedJoker", "Joker", 0])
+    cards.append(["BlackJoker", "Joker", 1])
+    cards.append(["RedJoker", "Joker", 0])
+    cards.append(["BlackJoker", "Joker", 1])
     random.shuffle(cards)
     i = 0
     for each in Rooms[ID]["data"].keys():
@@ -64,7 +64,7 @@ def game(request): #第一次是get请求，之后是post请求
         ret = {}
         ret["state"] = room["state"]
         ret["players"] = [i for i in room["data"].keys()]
-        ret["time"] = int(time.perf_counter() - room["time"])
+        ret["time"] = ROUNDTIME - int(time.perf_counter() - room["time"])
         if room["state"] == READY:
             ret["focus"] = room["players"][room["focus"]]
             ret["discard"] = room["discard"]
