@@ -24,8 +24,8 @@ def initGame(ID):
             cards.append([each1, each2, 0])
             cards.append([each1, each2, 1])
     cards.append(["RedJoker", "Joker", 0])
-    cards.append(["BlackJoker", "Joker", 1])
-    cards.append(["RedJoker", "Joker", 0])
+    cards.append(["BlackJoker", "Joker", 0])
+    cards.append(["RedJoker", "Joker", 1])
     cards.append(["BlackJoker", "Joker", 1])
     random.shuffle(cards)
     i = 0
@@ -69,6 +69,7 @@ def game(request): #第一次是get请求，之后是post请求
             ret["focus"] = room["players"][room["focus"]]
             ret["discard"] = room["discard"]
         ret["winner"] = "None"
+        ret["cardNumbers"] = [[key, len(room["data"][key])] for key in room["data"]]
         for key in room["data"]:
             if len(room["data"][key]) == 0:
                 ret["winner"] = key

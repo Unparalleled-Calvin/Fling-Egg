@@ -206,8 +206,9 @@ class Player():
         self.state = roomData["state"]
         self.winner = roomData["winner"]
         self.time = roomData["time"]
+        self.cardNumbers = roomData["cardNumbers"]
         if self.state == READY:
-            self.focus = roomData["focus"] == self.key
+            self.focus = roomData["focus"]
             self.history = roomData["discard"]
 
     def discard(self): #注意，最好这里要是同一个指针
@@ -235,7 +236,7 @@ class Player():
             }
             response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
             roomData = json.loads(response.text)
-            self.focus = roomData["focus"] == self.key
+            self.focus = roomData["focus"]
             self.state = roomData["state"]
             self.winner = roomData["winner"]
             if flag == 0:
