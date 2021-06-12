@@ -33,6 +33,19 @@ ARROW_WIDTH_RATE = 1/18
 ARROW_LENGTH_RATE = 1/10
 ARROW_CENTRE_MARGIN = 1/15
 
+BUTTON_LENGTH_RATE = 1/12
+BUTTON_CENTRE_MARGIN = 1/15
+BUTTON_BOTTON_MARGIN = 1/3
+
+MY_DISCARD_BOTTOM_MARGIN_RATE = 1/4
+LEFT_DISCARD_LEFT_MARGIN_RATE = 1/4
+RIGHT_DISCARD_RIGHT_MARGIN_RATE = 1/4
+TOP_DISCARD_TOP_MARGIN_RATE = 1/4
+
+ABANDON_WIDTH_RATE = 1/20
+ABANDON_TOP_RATE = 1/3
+ABANDON_HEIGHT_RATE = 1/40
+ABANDON_BOTTOM_RATE = 1/3
 
 #以下是一些关于字体的常量设定
 SYS_FONT='Verdana'#字体
@@ -82,7 +95,13 @@ def drawTimeAndArrow(player, fbs, screen):
     elif offset == 3:
         arrow = pygame.transform.smoothscale(pygame.transform.rotate(Surfaces["arrow"], 180), [int(ARROW_LENGTH_RATE * fbs[1]), int(ARROW_WIDTH_RATE * fbs[1])])
         screen.blit(arrow, (int((0.5 - ARROW_CENTRE_MARGIN - ARROW_LENGTH_RATE) * fbs[0]), int((0.5 - ARROW_WIDTH_RATE / 2) * fbs[1])))
-    
+
+def drawWaitting(fbs, screen):
+    FONT = pygame.font.SysFont(SYS_FONT, int(30 * fbs[0] / 1066))
+    waitFont = FONT.render("waitting...", True, FONT_COLOR)
+    waitFontSize=FONT.size("waitting...")
+    screen.blit(waitFont, [(fbs[0]-waitFontSize[0])//2, (fbs[1]-waitFontSize[1])//2])
+
 def drawOthers(player, fbs, screen):
     width = int(fbs[0]/(27+MY_WIDTH_RATE-1)/2*MY_WIDTH_RATE)
     height = int(CARD_SURFACE_RATE * width)
@@ -110,6 +129,108 @@ def drawOthers(player, fbs, screen):
     drawLeftRight(player.cardNumbers[(index - 1 + 4) % 4], player.cardNumbers[(index + 1) % 4])
     drawTop(player.cardNumbers[(index + 2) % 4])
 
+def drawButtons(fbs, screen):
+    ret = []
+    discard = pygame.transform.smoothscale(Surfaces["discardButton"], (int(BUTTON_LENGTH_RATE * fbs[0]), int(Surfaces["discardButton"].get_height() / Surfaces["discardButton"].get_width() * BUTTON_LENGTH_RATE * fbs[0])))
+    buttonLeft = int((0.5 - BUTTON_CENTRE_MARGIN) * fbs[0] - discard.get_width())
+    buttonTop = int((1 - BUTTON_BOTTON_MARGIN) * fbs[1])
+    screen.blit(discard, (buttonLeft, buttonTop))
+    ret.append([buttonLeft, buttonLeft + discard.get_width(), buttonTop, buttonTop + discard.get_height()])
+    abandon = pygame.transform.smoothscale(Surfaces["abandonButton"], (int(BUTTON_LENGTH_RATE * fbs[0]), int(Surfaces["abandonButton"].get_height() / Surfaces["abandonButton"].get_width() * BUTTON_LENGTH_RATE * fbs[0])))
+    buttonLeft = int((0.5 + BUTTON_CENTRE_MARGIN) * fbs[0])
+    buttonTop = int((1 - BUTTON_BOTTON_MARGIN) * fbs[1])
+    screen.blit(abandon, (buttonLeft, buttonTop))
+    ret.append([buttonLeft, buttonLeft + abandon.get_width(), buttonTop, buttonTop + abandon.get_height()])
+    return ret
+
+def drawDiscards(player, fbs, screen):
+    abandon = pygame.transform.smoothscale(Surfaces["abandon"], (int(ABANDON_WIDTH_RATE * fbs[0]), int(ABANDON_HEIGHT_RATE * fbs[0])))
+    def drawBottom():
+        for each in player.history:
+            if each[1] == player.key:
+                cards = each[0]
+                break
+        width = int(fbs[0]/(27+MY_WIDTH_RATE-1)/2*MY_WIDTH_RATE)
+        height = int(CARD_SURFACE_RATE * width)
+        cardTop = int((1 - MY_DISCARD_BOTTOM_MARGIN_RATE) * fbs[1] - height)
+        left = (fbs[0] - (len(cards) + MY_WIDTH_RATE - 1) * (width / MY_WIDTH_RATE))//2
+        if not len(cards):
+            screen.blit(abandon, ((fbs[0] - abandon.get_width()) // 2, int((1 - ABANDON_BOTTOM_RATE) * fbs[1])))
+        else:
+            for i in range(0, len(cards)):
+                card = pygame.transform.smoothscale(Surfaces[cards[i][0] + cards[i][1][0]], [int(width), int(CARD_SURFACE_RATE * width)])
+                cardLeft = left + i * (width/MY_WIDTH_RATE)
+                screen.blit(card, (cardLeft, cardTop))
+    def drawLeft():
+        for each in player.history:
+            if each[1] == [i[0] for i in player.cardNumbers][(my_index + 3) % 4]:
+                cards = each[0]
+                break
+        width = int(fbs[0]/(27+MY_WIDTH_RATE-1)/2*MY_WIDTH_RATE)
+        height = int(CARD_SURFACE_RATE * width)
+        cardTop = (fbs[1] - height) // 2
+        left = LEFT_DISCARD_LEFT_MARGIN_RATE * fbs[0]# (len(cards) + MY_WIDTH_RATE - 1) * (width / MY_WIDTH_RATE)
+        if not len(cards):
+            screen.blit(abandon, (left, (fbs[1] - abandon.get_height()) // 2))
+        else:
+            for i in range(0, len(cards)):
+                card = pygame.transform.smoothscale(Surfaces[cards[i][0] + cards[i][1][0]], [int(width), int(CARD_SURFACE_RATE * width)])
+                cardLeft = left + i * (width/MY_WIDTH_RATE)
+                screen.blit(card, (cardLeft, cardTop))
+    def drawRight():
+        for each in player.history:
+            if each[1] == [i[0] for i in player.cardNumbers][(my_index + 1) % 4]:
+                cards = each[0]
+                break
+        width = int(fbs[0]/(27+MY_WIDTH_RATE-1)/2*MY_WIDTH_RATE)
+        height = int(CARD_SURFACE_RATE * width)
+        cardTop = (fbs[1] - height) // 2
+        left = int((1 - LEFT_DISCARD_LEFT_MARGIN_RATE) * fbs[0] - (len(cards) + MY_WIDTH_RATE - 1) * (width / MY_WIDTH_RATE))
+        if not len(cards):
+            screen.blit(abandon, (left, (fbs[1] - abandon.get_height()) // 2))
+        else:
+            for i in range(0, len(cards)):
+                card = pygame.transform.smoothscale(Surfaces[cards[i][0] + cards[i][1][0]], [int(width), int(CARD_SURFACE_RATE * width)])
+                cardLeft = left + i * (width/MY_WIDTH_RATE)
+                screen.blit(card, (cardLeft, cardTop))
+    def drawTop():
+        for each in player.history:
+            if each[1] == [i[0] for i in player.cardNumbers][(my_index + 2) % 4]:
+                cards = each[0]
+                break
+        width = int(fbs[0]/(27+MY_WIDTH_RATE-1)/2*MY_WIDTH_RATE)
+        height = int(CARD_SURFACE_RATE * width)
+        cardTop = int(TOP_DISCARD_TOP_MARGIN_RATE * fbs[1])
+        left = (fbs[0] - (len(cards) + MY_WIDTH_RATE - 1) * (width / MY_WIDTH_RATE))//2
+        if not len(cards):
+            screen.blit(abandon, ((fbs[0] - abandon.get_width()) // 2, int(ABANDON_TOP_RATE * fbs[1])))
+        else:
+            for i in range(0, len(cards)):
+                card = pygame.transform.smoothscale(Surfaces[cards[i][0] + cards[i][1][0]], [int(width), int(CARD_SURFACE_RATE * width)])
+                cardLeft = left + i * (width/MY_WIDTH_RATE)
+                screen.blit(card, (cardLeft, cardTop))
+    
+    focus_index = [each[0] for each in player.cardNumbers].index(player.focus)
+    my_index = [each[0] for each in player.cardNumbers].index(player.key)
+    offset = (my_index - focus_index + 4) % 4
+    if offset == 0: # 自己不画，画剩下三个
+        drawLeft()
+        drawTop()
+        drawRight()
+    elif offset == 1:
+        drawLeft()
+        drawTop()
+        drawBottom()
+    elif offset == 2:
+        drawLeft()
+        drawRight()
+        drawBottom()
+    elif offset == 3:
+        drawTop()
+        drawRight()
+        drawBottom()
+        
+
 while True:
     screen.fill(IVORY) # 底图：白色
     now = time.perf_counter()
@@ -122,10 +243,15 @@ while True:
             player.get()
         else:
             player.update()
+    if player.state == WAITTING:
+        drawWaitting(fbs, screen)
     if player.state == READY:
         drawOthers(player, fbs, screen)
         drawTimeAndArrow(player, fbs, screen)
+        drawDiscards(player, fbs, screen)
         cardsPos = drawCards(player.cards, player.select, fbs, screen)
+    if player.focus == player.key:
+        buttonsPos = drawButtons(fbs, screen)
     pygame.display.flip()    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -141,6 +267,13 @@ while True:
                         player.select.Remove(luckyCard)
                     else:
                         player.select.append(luckyCard)
+                    break
+            if player.focus == player.key:
+                if event.pos[0] > buttonsPos[0][0] and event.pos[0] < buttonsPos[0][1] and event.pos[1] > buttonsPos[0][2] and event.pos[1] < buttonsPos[0][3]: # 点击了“出牌”
+                    player.discard()
+                    break
+                elif event.pos[0] > buttonsPos[0][0] and event.pos[0] < buttonsPos[0][1] and event.pos[1] > buttonsPos[0][2] and event.pos[1] < buttonsPos[0][3]: # 点击了“不要”
+                    player.abandon()
                     break
         elif event.type == pygame.VIDEORESIZE:
             fbs = (event.w, event.h)

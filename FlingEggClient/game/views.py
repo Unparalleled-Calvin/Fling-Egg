@@ -93,7 +93,7 @@ def game(request): #第一次是get请求，之后是post请求
                     initGame(roomID)
             if room["state"] == READY:
                 if time.perf_counter() - room["time"] > ROUNDTIME:
-                    roomRoundChange(room, [[],key])
+                    roomRoundChange(room, [[], room["players"][room["focus"]]])
             ret = roomInfo(room)
             ret["cards"] = room["data"][key]
         elif body["func"] == "discard":

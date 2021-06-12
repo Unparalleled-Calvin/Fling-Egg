@@ -54,7 +54,7 @@ class Card():
 class Deck():
     # deck是牌堆，一种牌型
     def __init__(self, cards): # 抛进来一堆牌，自动检查牌型
-        self.cards = sorted(cards, key=cmp_to_key(compareCard))
+        self.cards = Select(sorted(cards, key=cmp_to_key(compareCard)))
         self.check()
         if self.type == None:
             raise Exception('Wrong Deck!')
@@ -121,6 +121,18 @@ class Deck():
                 self.value = cards[2].value
             else:
                 self.type = None
+        elif number == 6:
+            if faceSame(cards):
+                self.type = "Bomb"
+                self.value = cards[0].value
+            elif faceStraight([cards[0]. cards[2], cards[4]]) and faceSame(cards[0:2]) and faceSame(cards[2:4]) and faceSame(cards[4:6]):
+                self.type = "Triplet"
+                self.value = cards[0].value
+            elif faceStraight(cards[3:5]) and faceSame(cards[0:3]) and faceSame(cards[3:6]):
+                self.type = "Steel"
+                self.value = cards[0].value
+            else:
+                self.type = None
         elif number <= 8 and faceSame(cards):
             self.type = "Bomb"
             self.value = cards[0].value
@@ -154,7 +166,7 @@ def larger(deck1, deck2): # deck1 大于 deck2
 def cardsToData(cards): # 传出一个列表
     data = []
     for each in cards:
-        data.append([each.face, each.suit])
+        data.append([each.face, each.suit, each.ID])
     return data
 
 def dataToCards(data): # 传入一个列表，传出一个card列表
@@ -178,7 +190,7 @@ class Select(list):
 
 class Player():
     def __init__(self):
-        self.cards = []
+        self.cards = Select()
         self.select = Select()
         self.roomID = None
         self.key = ""
@@ -186,6 +198,7 @@ class Player():
         self.start = 0
         self.time = 0
         self.winner = "None"
+        self.focus = "None"
 
     def get(self):
         response = requests.get(clientURL)
@@ -202,7 +215,7 @@ class Player():
         }
         response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
         roomData = json.loads(response.text)
-        self.cards = sorted(dataToCards(roomData["cards"]), key=cmp_to_key(compareCard))
+        self.cards = Select(sorted(dataToCards(roomData["cards"]), key=cmp_to_key(compareCard)))
         self.state = roomData["state"]
         self.winner = roomData["winner"]
         self.time = roomData["time"]
@@ -224,9 +237,8 @@ class Player():
                 flag = larger(deck, deck1)
             else:
                 flag = 1
-                print(self.key, "出牌", self.select)
             for each in self.select:
-                self.cards.remove(each)
+                self.cards.Remove(each)
             data = {
                 "roomID": self.roomID,
                 "key": self.key,
@@ -234,32 +246,11 @@ class Player():
                 "discard": cardsToData(self.select if flag else []),
                 "cards": cardsToData(self.cards)
             }
-            response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
-            roomData = json.loads(response.text)
-            self.focus = roomData["focus"]
-            self.state = roomData["state"]
-            self.winner = roomData["winner"]
             if flag == 0:
                 print(self.key, "smaller!")
-            self.select.clear()
+            else:
+                response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
+            self.update()
         except Exception as e:
              print("Can not discard!", e)
-    # def game(self):
-    #     if self.state == IDLE:
-    #         print("已加入房间")
-    #         self.get()
-    #     elif self.state == WAITTING:
-    #         if time.perf_counter() - self.start >= REQUEST_INTERNAL:
-    #             self.start = time.perf_counter()
-    #             self.update()
-    #     elif self.state == READY:
-    #         if time.perf_counter() - self.start >= REQUEST_INTERNAL:
-    #             start = time.perf_counter()
-    #             self.update()
-    #         if self.focus:
-    #             self.select.append(self.cards[0])
-    #             self.discard()
-    #     if self.winner == self.key:
-    #         raise Exception("{} win!".format(self.key))
-        
-
+        self.select.clear()
