@@ -57,7 +57,7 @@ class Deck():
         self.cards = Select(sorted(cards, key=cmp_to_key(compareCard)))
         self.check()
         if self.type == None:
-            raise Exception('Wrong Deck!')
+            raise Exception('Wrong!')
     def check(self):
         def faceSame(cards):
             for each in cards:
@@ -125,7 +125,7 @@ class Deck():
             if faceSame(cards):
                 self.type = "Bomb"
                 self.value = cards[0].value
-            elif faceStraight([cards[0]. cards[2], cards[4]]) and faceSame(cards[0:2]) and faceSame(cards[2:4]) and faceSame(cards[4:6]):
+            elif faceStraight([cards[0], cards[2], cards[4]]) and faceSame(cards[0:2]) and faceSame(cards[2:4]) and faceSame(cards[4:6]):
                 self.type = "Triplet"
                 self.value = cards[0].value
             elif faceStraight(cards[3:5]) and faceSame(cards[0:3]) and faceSame(cards[3:6]):
@@ -227,6 +227,8 @@ class Player():
     def discard(self): #注意，最好这里要是同一个指针
         try:
             deck = Deck(self.select)
+            if deck.type == "None":
+                raise Exception("Empty!")
             flag = 0
             deck1, deck2, deck3 = (Deck(dataToCards(i[0])) for i in self.history[1:4])
             if deck3.type != "None":
@@ -247,10 +249,11 @@ class Player():
                 "cards": cardsToData(self.cards)
             }
             if flag == 0:
-                print(self.key, "smaller!")
+                print(self.key, "Smaller!")
             else:
                 response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
             self.update()
+            self.select.clear()
         except Exception as e:
-             print("Can not discard!", e)
-        self.select.clear()
+            self.select.clear()
+            return str(e)

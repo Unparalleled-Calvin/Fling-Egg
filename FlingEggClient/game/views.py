@@ -6,6 +6,7 @@ import json
 import random
 import sys
 sys.path.append(".\\game")
+from functools import cmp_to_key
 from constants import *
 from gadgat import *
 # Create your views here.
@@ -13,8 +14,24 @@ from gadgat import *
 # 游戏逻辑是：用一个{key,cards}维护四个用户的信息，每个用户一秒钟进行四次请求，进行各项信息的维护，要保证服务器信息不出错
 
 
-Rooms = [] #data中"key":cards
-# {"roomID":0, "state":WAITTING, "focus":, "time":, "data":{}}
+Rooms = []
+cardValue = {
+    "2" : 2,
+    "3" : 3,
+    "4" : 4,
+    "5" : 5,
+    "6" : 6,
+    "7" : 7,
+    "8" : 8,
+    "9" : 9,
+    "10" : 10,
+    "J" : 11,
+    "Q" : 12,
+    "K" : 13,
+    "A" : 14,
+    "BlackJoker" : 15,
+    "RedJoker" : 16
+}
 def initGame(ID):
     suit = ["Heart", "Spade", "Diamond", "Club"]
     face = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
@@ -29,15 +46,29 @@ def initGame(ID):
     cards.append(["BlackJoker", "Joker", 1])
     random.shuffle(cards)
     i = 0
+    def compareCard(card1, card2):
+        if cardValue[card1[0]] == cardValue[card2[0]]:
+            if card1[1] > card2[1]:
+                return -1
+            elif card1[1] == card2[1]:
+                return 0
+            else:
+                return 1
+        elif cardValue[card1[0]] > cardValue[card2[0]]:
+            return -1
+        else:
+            return 1
+
     for each in Rooms[ID]["data"].keys():
-        Rooms[ID]["data"][each] = cards[i:i+27]
+        Rooms[ID]["data"][each] = sorted(cards[i:i+27], key=cmp_to_key(compareCard))
         i += 27
     Rooms[ID]["players"] = [i for i in Rooms[ID]["data"].keys()]
     players = Rooms[ID]["players"]
     focus = random.randint(0,3)
     Rooms[ID]["focus"] = focus
     Rooms[ID]["time"] = time.perf_counter()
-    Rooms[ID]["discard"] = [[[], players[focus]], [[], players[(focus+1)%4]], [[], players[(focus+2)%4]], [[], players[(focus+3)%4]]]
+    Rooms[ID]["discard"] = [[["None"], players[focus]], [["None"], players[(focus+1)%4]], [["None"], players[(focus+2)%4]], [["None"], players[(focus+3)%4]]]
+    Rooms[ID]["dirty"] = 0
 
 def newRoom():
     return {
@@ -60,6 +91,8 @@ def game(request): #第一次是get请求，之后是post请求
         room["discard"] = room["discard"][1:4] + [data]
         room["time"] = time.perf_counter()
         room["focus"] = (room["focus"] + 1) % 4
+        if room["dirty"] == 0:
+            room["dirty"] = 1
     def roomInfo(room):
         ret = {}
         ret["state"] = room["state"]
@@ -93,7 +126,10 @@ def game(request): #第一次是get请求，之后是post请求
                     initGame(roomID)
             if room["state"] == READY:
                 if time.perf_counter() - room["time"] > ROUNDTIME:
-                    roomRoundChange(room, [[], room["players"][room["focus"]]])
+                    if (len(room["discard"][1][0]) or len(room["discard"][2][0]) or room["discard"][3][0]) and room["dirty"]:
+                        roomRoundChange(room, [[], room["players"][room["focus"]]])
+                    else:
+                        roomRoundChange(room, [[room["data"][key].pop()], room["players"][room["focus"]]])
             ret = roomInfo(room)
             ret["cards"] = room["data"][key]
         elif body["func"] == "discard":
