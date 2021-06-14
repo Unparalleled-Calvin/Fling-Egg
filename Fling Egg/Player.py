@@ -65,18 +65,14 @@ class Deck():
                     return False
             return True
         def faceStraight(cards):
-            if len(cards) != 5:
-                return False
             for i in range(0, len(cards)):
-                if cards[i].value - cards[0].value != i:
+                if cards[i].value - cards[0].value != -1 * i:
                     return False
-            if cards[i].value >= 11:
+            if cards[-1].value >= 11:
                 return False
             return True
         def suitFlush(cards):
-            if len(cards) != 5:
-                return False
-            for i in len(cards):
+            for i in range(0, len(cards)):
                 if cards[i].suit != cards[0].suit:
                     return False
             return True
@@ -172,7 +168,10 @@ def cardsToData(cards): # 传出一个列表
 def dataToCards(data): # 传入一个列表，传出一个card列表
     cards = []
     for each in data:
-        cards.append(Card(each[0], each[1], each[2]))
+        try:
+            cards.append(Card(each[0], each[1], each[2]))
+        except:
+            pass
     return cards
 
 class Select(list):
@@ -225,35 +224,35 @@ class Player():
             self.history = roomData["discard"]
 
     def discard(self): #注意，最好这里要是同一个指针
-        try:
-            deck = Deck(self.select)
-            if deck.type == "None":
-                raise Exception("Empty!")
-            flag = 0
-            deck1, deck2, deck3 = (Deck(dataToCards(i[0])) for i in self.history[1:4])
-            if deck3.type != "None":
-                flag = larger(deck, deck3)
-            elif deck2.type != "None":
-                flag = larger(deck, deck2)
-            elif deck1.type != "None":
-                flag = larger(deck, deck1)
-            else:
-                flag = 1
-            for each in self.select:
-                self.cards.Remove(each)
-            data = {
-                "roomID": self.roomID,
-                "key": self.key,
-                "func": "discard", 
-                "discard": cardsToData(self.select if flag else []),
-                "cards": cardsToData(self.cards)
-            }
-            if flag == 0:
-                print(self.key, "Smaller!")
-            else:
-                response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
-            self.update()
-            self.select.clear()
-        except Exception as e:
-            self.select.clear()
-            return str(e)
+        # try:
+        deck = Deck(self.select)
+        if deck.type == "None":
+            raise Exception("Empty!")
+        flag = 0
+        deck1, deck2, deck3 = (Deck(dataToCards(i[0])) for i in self.history[1:4])
+        if deck3.type != "None":
+            flag = larger(deck, deck3)
+        elif deck2.type != "None":
+            flag = larger(deck, deck2)
+        elif deck1.type != "None":
+            flag = larger(deck, deck1)
+        else:
+            flag = 1
+        for each in self.select:
+            self.cards.Remove(each)
+        data = {
+            "roomID": self.roomID,
+            "key": self.key,
+            "func": "discard", 
+            "discard": cardsToData(self.select if flag else []),
+            "cards": cardsToData(self.cards)
+        }
+        if flag == 0:
+            print(self.key, "Smaller!")
+        else:
+            response = requests.post(clientURL, data = json.dumps(data), headers={'Content-Type':'application/json'})
+        self.update()
+        self.select.clear()
+        # except Exception as e:
+        #     self.select.clear()
+        #     return str(e)
